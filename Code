@@ -146,7 +146,18 @@ df['content-compound'] = df['content'].apply(f)
 df['date'] = pd.to_datetime(df.date,format="mixed").dt.date
 
 mean_df = df.groupby(['ticker', 'date']).mean(numeric_only=True)
-mean_df.plot(kind="bar")
-mean_df = mean_df.unstack()
-mean_df = mean_df.xs('title-compound', axis="columns").transpose()
+print(mean_df)
+
+for ticker in tickers:
+
+    ticker_data = mean_df.xs(ticker)
+    ticker_data.plot(kind="bar")
+    plt.gcf().set_size_inches(16, 8)
+
+    print(ticker_data)
+    plt.title(f'Bar Plot for Ticker: {ticker}')
+    plt.xlabel('Date')
+    plt.ylabel('Mean Value')
+    # ticker_data = ticker_data.xs('title-compound', axis="columns").transpose()
 plt.show()
+
