@@ -154,6 +154,14 @@ for ticker in tickers:
     ticker_data.plot(kind="bar")
     plt.gcf().set_size_inches(16, 8)
 
+    index = tickers.index(ticker)
+    start_date = ticker_data.index.min() - timedelta(days=1)
+    end_date = ticker_data.index.max()
+    prices = yf.download(yf_ticker[index], start=start_date, end=end_date)
+    adj_close = prices['Adj Close']
+    returns = adj_close / adj_close.shift(1)
+    print(returns)
+
     print(ticker_data)
     plt.title(f'Bar Plot for Ticker: {ticker}')
     plt.xlabel('Date')
