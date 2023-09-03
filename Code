@@ -137,8 +137,9 @@ for ticker in tickers:
     end_date = ticker_data.index.max()
     prices = yf.download(yf_ticker[index], start=start_date, end=end_date)
     adj_close = prices['Adj Close']
-    returns = adj_close / adj_close.shift(1)
-    print(returns)
+    log_returns = np.log(adj_close / adj_close.shift(1))
+    print(log_returns)
+    ticker_data['log_returns'] = log_returns
 
     print(ticker_data)
     plt.title(f'Bar Plot for Ticker: {ticker}')
