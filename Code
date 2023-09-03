@@ -141,6 +141,15 @@ for ticker in tickers:
     print(log_returns)
     ticker_data['log_returns'] = log_returns
 
+    ticker_data['direction match'] = np.where((ticker_data['average-compound'] > 0) & (ticker_data['log_returns'] > 0) | (ticker_data['average-compound'] < 0) & (ticker_data['log_returns'] < 0),  1, 0)
+    counts = ticker_data['direction match'].value_counts()
+    same_count = counts.get(1,0)
+    different_count = counts.get(0, 0)
+    total_count = same_count + different_count
+    print(f'Direction Match Count: {same_count}')
+    print(f'Direction Mismatch Count: {different_count}')
+    print(f'Total data Count: {total_count}')
+    print(f'Total Accuracy: {float(same_count/total_count)}%')
     print(ticker_data)
     plt.title(f'Bar Plot for Ticker: {ticker}')
     plt.xlabel('Date')
