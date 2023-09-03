@@ -170,5 +170,51 @@ for ticker in tickers:
             continue
         parsed_data.append([ticker, date, title, content])
 """
+"""
+# Cryptoslate webscraper
+for ticker in tickers:
+    url = crypto_slate_url + ticker
 
+    req = Request(url=url, headers={'user-agent': 'my-app'})
+    response = urlopen(req)
+
+    html = BeautifulSoup(response, 'html.parser')
+    articles = html.find_all("div", class_="list-post")
+    print(articles)
+    for article in articles:
+        title = article.find("h2").text
+        print(title)
+        excerpt_div = article.find("div", class_='excerpt')
+        if excerpt_div:
+            content = excerpt_div.text
+            print("Content:", content)
+        else:
+            content = title
+            print("Content: No excerpt available, Using Title")
+        days_ago = article.find("span", class_="post-meta").text
+        time_split = days_ago.split(" ")
+        print(time_split)
+        ago = int(time_split[1])
+        if time_split[2] == "hour" or time_split[2] == "hours":
+            date = current_datetime.date()
+            print(date)
+        elif time_split[2] == "day" or time_split[2] == "days":
+            time_ago = timedelta(days=ago)
+            time_date = current_datetime - time_ago
+            date = time_date.date()
+            print(date)
+        elif time_split[2] == "week" or time_split[2] == "weeks":
+            days_ago = ago * 7
+            time_ago = timedelta(days=days_ago)
+            time_date = current_datetime - time_ago
+            date = time_date.date()
+            print(date)
+        elif time_split[2] == "month" or time_split[2] == "months":
+            days_ago = ago * 31
+            time_ago = timedelta(days=days_ago)
+            time_date = current_datetime - time_ago
+            date = time_date.date()
+            print(date)
+        parsed_data.append([ticker, date, title, content])
+"""
 
