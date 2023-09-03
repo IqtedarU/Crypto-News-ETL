@@ -217,4 +217,23 @@ for ticker in tickers:
             print(date)
         parsed_data.append([ticker, date, title, content])
 """
+"""
+# Bitcoin Magazine scraper
+if "bitcoin" in tickers:
+    url = "https://bitcoinmagazine.com/articles/"
 
+    req = Request(url=url, headers={'user-agent': 'my-app'})
+    response = urlopen(req)
+
+    html = BeautifulSoup(response, 'html.parser')
+    articles = html.find_all("phoenix-card", class_='m-card mm-card--landscape-image mm-card--type-list')
+    for article in articles:
+        title = article.find("h2", class_="m-ellipsis--text m-card--header-text").text
+        print(title)
+        content = article.find("p", class_="m-card--body m-ellipsis--text").text
+        print(content)
+        date = article.find("time").text
+        print(date)
+        parsed_data.append(['bitcoin', date, title, content])
+
+"""
