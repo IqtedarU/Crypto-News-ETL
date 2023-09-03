@@ -100,28 +100,6 @@ for ticker in tickers:
         date = article.find("time").text
         parsed_data.append([ticker, date, title, content])
 
-# News API scraper:
-for ticker in tickers:
-    url = ('https://newsapi.org/v2/everything?'
-           'q={ticker}&'
-           'from={yesterday}&'
-           'sortBy=popularity&'
-           'apiKey=506917b7fb0f4a99b0798d79e17ddd6b')
-
-    response = requests.get(url=url)
-    data = response.json()
-    articles = data['articles']
-    for article in articles:
-        title = article['title']
-        content = article['content']
-        published_at = article['publishedAt']
-        if published_at != None:
-            time_split = published_at.split("T")
-            date = time_split[0]
-        else:
-            continue
-        parsed_data.append([ticker, date, title, content])
-
 for ticker in tickers:
     url = 'https://news.google.com/search?q={ticker}&hl=en-US&gl=US&ceid=US%3Aen'
 
@@ -168,4 +146,29 @@ for ticker in tickers:
     plt.ylabel('Mean Value')
     # ticker_data = ticker_data.xs('title-compound', axis="columns").transpose()
 plt.show()
+
+"""
+# News API scraper:
+for ticker in tickers:
+    url = ('https://newsapi.org/v2/everything?'
+           'q={ticker}&'
+           'from={yesterday}&'
+           'sortBy=popularity&'
+           'apiKey=506917b7fb0f4a99b0798d79e17ddd6b')
+
+    response = requests.get(url=url)
+    data = response.json()
+    articles = data['articles']
+    for article in articles:
+        title = article['title']
+        content = article['content']
+        published_at = article['publishedAt']
+        if published_at != None:
+            time_split = published_at.split("T")
+            date = time_split[0]
+        else:
+            continue
+        parsed_data.append([ticker, date, title, content])
+"""
+
 
