@@ -6,7 +6,7 @@ This is still in-progress as I just made the switch, but the plan it to go throu
 
 # Steps:
 
-## Ste[ 1: Data Retrieval 
+## Step 1: Data Retrieval 
 Web-Scrape Data on the internet for cypto-news from sources. I currently have a few, but right now, I want this to automate and then get to adding more sources if needed.
 
 ## Step 2: Data Preprocessing
