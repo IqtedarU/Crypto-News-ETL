@@ -8,6 +8,7 @@ This is still in-progress as I just made the switch, but the plan it to go throu
 
 ## Step 1: Data Retrieval 
 Web-Scrape Data on the internet for cypto-news from sources. I currently have a few, but right now, I want this to automate and then get to adding more sources if needed.
+A lot of the code needs to be fixed as some websites have changed. maybe look into more dynamic web scraper like Selenium. 
 
 ## Step 2: Data Preprocessing
 Clean the data in the format I want it to be. In this case it would be Ticker, date, Title of article, and then content of article.
