@@ -7,20 +7,21 @@ This is still in-progress as I just made the switch, but the plan it to go throu
 # Steps:
 
 ## Step 1: Data Retrieval 
-Web-Scrape Data on the internet for cypto-news from sources. I currently have a few, but right now, I want this to automate and then get to adding more sources if needed.
-A lot of the code needs to be fixed as some websites have changed. maybe look into more dynamic web scraper like Selenium. 
+Web-Scrape Data on the internet for cypto-news from sources. I currently web scrape 1 to get an idea on hwo to interact with database.
 
 ## Step 2: Data Preprocessing
-Clean the data in the format I want it to be. In this case it would be Ticker, date, Title of article, and then content of article.
-additionally, I might consider adding the source as a column. 
+Clean the data in the format I want it to be. In this case we have Source, Url, Date, Time, Tag, Title, Content
 
 ## Step 3: Database design and integration
-Since this is unstructered data, a NoSQL Database should be used. The Design can have different schemas, maybe sorting by each sources, but i will currently put in one. 
+Since this is a fixed schema a SQL database is best. I am currently using NoSql mainly because AWS has limits on free, and I would like to get testing out of the way.
+
+There will we two datatables. One will be sources keeping track of sources used. the other will be Articles keeping track of all articles. We can use SQL to query efficiently
 
 ## Step 4: AWS automation and Pyspark
-AWS is mainly to get experience on AWS and know more on how to use it. I will use it to automate the script, and populate the NoSQL database. 
-Pyspark is also used for experience since having access to big data is hard.
+AWS is mainly to get experience on AWS and know more on how to use it. I will use it to automate the script, and populate the SQL Database.
+AWS RDS is used for database, Apache Airflow is used to automate script and adding to script. maybe look into Pyspark incase big data used in future.
+This project won't use big data, as I will become poor :( .
 
 ## Step 5 Querying or future steps:
-Mabe get into MongoDB to make queries for experience, or look more into on how to expand this project
+I will make queries for looking for specific tags, dates, or authors. Maybe look into information retrieval to search for specific articles in a big database
 
