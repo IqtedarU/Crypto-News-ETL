@@ -1,249 +1,179 @@
+import logging
 from urllib.request import urlopen, Request
-
+import os
+import boto3 as boto3
+import pyarrow
 import requests
 from bs4 import BeautifulSoup
-from nltk.sentiment.vader import SentimentIntensityAnalyzer
 import pandas as pd
-import matplotlib.pyplot as plt
 from datetime import datetime, timedelta
 
+def scrape_articles():
 
-coin_desk_url = 'https://www.coindesk.com/tag/'
-coin_telegraph_url = 'https://cointelegraph.com/tags/'
-news_btc_url = "https://www.newsbtc.com/news/"
-crypto_briefing_url = 'https://cryptobriefing.com/?s='
-current_datetime = datetime.now()
-yesterday = (datetime.now()-timedelta(days=1)).strftime('%Y-%m-%d')
-tickers = ['bitcoin','ethereum']
-page_numbers = [str(x) for x in list((range(1,25)))]
-parsed_data = []
+    os.environ['AWS_ACCESS_KEY_ID'] = ''
+    os.environ['AWS_SECRET_ACCESS_KEY'] = ''
 
-# Webscrape for coin_desk
-for ticker in tickers:
-    for page in page_numbers:
-        url = coin_desk_url + ticker + "/" + page
-        req = Request(url=url, headers={'user-agent': 'my-app'})
-        response = urlopen(req)
 
-        html = BeautifulSoup(response, 'html.parser')
-        articles = html.find_all("div", class_='article-cardstyles__AcTitle-sc-q1x8lc-1 PUjAZ articleTextSection')
-        for article in articles:
-            title = article.find("a", class_="card-title").text
-            content = article.find("span", class_="content-text").text
-            timestamp = article.find("span", class_="typography__StyledTypography-sc-owin6q-0 hcIsFR").text
-            date_data = timestamp.split(' ')
-            date = date_data[0] + ', ' + date_data[1] + ' ' + date_data[2]
-            time = date_data[4]+ ' ' + date_data[5]
-            parsed_data.append([ticker, date, title, content])
+    region_name = 'us-east-2'
+    dynamodb = boto3.resource('dynamodb', region_name=region_name)
 
-# coin_telegraph web scrape
-for ticker in tickers:
-    url = coin_telegraph_url + ticker
 
-    req = Request(url=url, headers={'user-agent': 'my-app'})
-    response = urlopen(req)
+    table_name = 'Cryptocurrency-News-Database'
+    table = dynamodb.Table(table_name)
 
-    html = BeautifulSoup(response, 'html.parser')
-    articles = html.find_all("div", class_='post-card-inline__content')
-    for article in articles:
-        title = article.find("span", class_="post-card-inline__title").text
-        content = article.find("p", class_="post-card-inline__text").text
-        date_element = article.find("time", class_="post-card-inline__date")
-        date = date_element.get("datetime") if date_element else None
-        parsed_data.append([ticker, date, title, content])
 
-# NewsBtc scraper
-for ticker in tickers:
-    url = news_btc_url + ticker
+    crypto_slate_url = 'https://cryptoslate.com/news/'
 
-    req = Request(url=url, headers={'user-agent': 'my-app'})
-    response = urlopen(req)
+    # Webscrape for cryptoslate
+    page_number = 100
+    while True:
+       try:
+        # Open page of news article
+        url = f'{crypto_slate_url}/page/{page_number}' if page_number > 1 else crypto_slate_url
+        response = requests.get(url)
+        if response.status_code != 200:
+           print('error')
+           break
 
-    html = BeautifulSoup(response, 'html.parser')
-    articles = html.find_all("article", class_='jeg_post jeg_pl_md_2 format-standard')
-    for article in articles:
-        title = article.find("h3", class_="jeg_post_title").text
-        content = article.find("div", class_="jeg_post_excerpt").text
-        days_ago = article.find("div", class_="jeg_meta_date").text
-        time_split = days_ago.split(" ")
-        ago = int(time_split[1])
-        if time_split[2] == "hour" or time_split[2] == "hours":
-            date = current_datetime.date()
-        elif time_split[2] == "day" or time_split[2] == "days":
-            time_ago = timedelta(days=ago)
-            time_date = current_datetime - time_ago
-            date = time_date.date()
-        elif time_split[2] == "week" or time_split[2] == "weeks":
-            days_ago = ago * 7
-            time_ago = timedelta(days=days_ago)
-            time_date = current_datetime - time_ago
-            date = time_date.date()
-        elif time_split[2] == "month" or time_split[2] == "months":
-            days_ago = ago * 31
-            time_ago = timedelta(days=days_ago)
-            time_date = current_datetime - time_ago
-            date = time_date.date()
-        parsed_data.append([ticker, date, title, content])
+       # Get area where News data are listed
+        soup = BeautifulSoup(response.content, 'html.parser')
+        # parse to get to featured news
+        top_element = soup.find(id='top')
+        news_archive_element = top_element.find(class_='news-archive')
+        list_feed_element = news_archive_element.find(class_='list-feed slate')
+        list_posts = list_feed_element.find_all(class_='list-post')
 
-# Crypto Briefing scraper
-for ticker in tickers:
-    url = crypto_briefing_url + ticker
+       # Go through Individual News Articles on Page
+        for list_post in list_posts:
+           title_element = list_post.find('h2')
+           title = title_element.text.strip()
+           # Extract the URL from the 'href' attribute of the 'a' tag
+           url = list_post.find('a').get('href')
+           # Find the tag and date within the 'post-meta' div
+           post_meta = list_post.find('div', class_='post-meta')
+           span_elements = post_meta.find_all('span')
+           # Initialize the tag variable
+           tag = None
+           # Loop through the span elements and extract the tag
+           for i, span in enumerate(span_elements):
+               tag_text = span.text.strip()
+               if tag_text.startswith('Contributor'):
+                   if i + 1 < len(span_elements):
+                       tag = span_elements[i + 1].text.strip()
+                   # Exit the loop
+                   break
+               else:
+                   tag = span_elements[0].text.strip()
+           if(tag == 'Ad'): # not keeping any Ads
+               continue
+           # Check Duplicates
+           response = table.get_item(
+               Key={
+                   'URL': url
+               }
+           )
 
-    req = Request(url=url, headers={'user-agent': 'my-app'})
-    response = urlopen(req)
+           # If item with the same URL already exists, skip inserting it
+           if 'Item' in response:
+               print(f"Article with URL '{url}' already exists. Skipping insertion.")
+               exit(0)
+           # Check if article is not already in the set
+           else:
+               # Go to article page
+               response2 = requests.get(url)
+               if response2.status_code != 200:
+                   print('error')
+                   break
 
-    html = BeautifulSoup(response, 'html.parser')
-    articles = html.find_all("section", class_='main-news-content')
-    for article in articles:
-        title = article.find("h2", class_="main-news-title").text
-        content = article.find("p", class_="main-news-message").text
-        date = article.find("time").text
-        parsed_data.append([ticker, date, title, content])
+               soup = BeautifulSoup(response2.content, 'html.parser')
+               article_top_element = soup.find(id='top')
+               article_main = article_top_element.find(id='main')
+               article_post_container = article_main.find(class_ = 'post-container')
 
-for ticker in tickers:
-    url = 'https://news.google.com/search?q={ticker}&hl=en-US&gl=US&ceid=US%3Aen'
+               author_box = article_post_container.find(class_ = 'post-meta-single')
+               author_info = author_box.find(class_='author-info')
+               author = author_info.find("a").text
+               date_time = author_info.find(class_ = 'post-date').text.split()  # Join components 3-5 as the date
+               date, time = " ".join(date_time[0:3]), " ".join(date_time[4:6])
 
-    req = Request(url=url, headers={'user-agent': 'my-app'})
-    response = urlopen(req)
+               article_post = article_post_container.find(class_ = 'post')
+               article_post_content = article_post.find(class_ = 'post-box clearfix')
+               if (article_post_content != None):
+                post_content = article_post_content.find('div', {'data-mash-reactions': 'enabled'})
+                text_content = ''
+                for child in post_content.children:
+                   if child.name == 'p':
+                       # Extract text from <p> elements
+                       text_content += child.get_text(separator=' ',
+                                                      strip=True) + ' '  # Add space after each <p> element
+                   elif child.name == 'blockquote':
+                       # Extract text from <blockquote> elements
+                       text_content += child.get_text(separator=' ',
+                                                      strip=True) + ' '  # Add space after each <blockquote> element
+                   elif child.name == 'a':
+                       # Extract text from linked elements
+                       linked_text = child.get_text(separator=' ', strip=True)
+                       text_content += linked_text + ' '  # Add space after each linked element
+                item = {
+                    'Date': date,
+                    'Time': time,
+                    'Tag': tag,
+                    'Free': 'False',
+                    'Title': title,
+                    'Content': text_content,
+                    'URL': url
 
-    html = BeautifulSoup(response, 'html.parser')
-    articles = html.find_all("article", class_='MQsxIb xTewfe R7GTQ keNKEd j7vNaf Cc0Z5d VkAdve GU7x0c JMJvke q4atFc')
-    for article in articles:
-        title = article.find("a", class_="DY5T1d RZIKme").text
-        content = article.find("a", class_="DY5T1d RZIKme").text
-        date = article.find("time").get("datetime")
-        parsed_data.append([ticker, date, title, content])
+                }
 
-df = pd.DataFrame(parsed_data, columns=['ticker', 'date', 'title', 'content'])
-print(f'There is a total of {df.shape[0]} articles')
-vader = SentimentIntensityAnalyzer()
 
-f = lambda title: vader.polarity_scores(title)['compound']
-df['title-compound'] = df['title'].apply(f)
-df['content-compound'] = df['content'].apply(f)
-df['date'] = pd.to_datetime(df.date,format="mixed").dt.date
+                # Insert item into DynamoDB table
+                table.put_item(Item=item)
+               elif (article_post_content == None):
+                article_post_content = article_post.find(class_='post-box clearfix cs-box') #Premium Content
+                post_content = article_post_content.find('article')
+                text_content = ''
+                for child in post_content.children:
+                   if child.name == 'p':
+                       # Extract text from <p> elements
+                       text_content += child.get_text(separator=' ',
+                                                      strip=True) + ' '  # Add space after each <p> element
 
-mean_df = df.groupby(['ticker', 'date']).mean(numeric_only=True)
-print(mean_df)
+                #If item with the same URL already exists, skip inserting it
+                if 'Item' in response:
+                    print(f"Article with URL '{url}' already exists. Skipping insertion.")
+                    exit(0)
+                item = {
+                   'Date': date,
+                   'Time': time,
+                   'Tag': tag,
+                   'Free': 'True',
+                   'Title': title,
+                   'Content': text_content,
+                   'URL': url
 
-for ticker in tickers:
+                }
 
-    ticker_data = mean_df.xs(ticker)
-    ticker_data.plot(kind="bar")
-    plt.gcf().set_size_inches(16, 8)
+            #Insert item into DynamoDB table
+                table.put_item(Item=item)
+        if( page_number == 1709):
+           break
+        page_number+=1
+       except Exception as e:
+        #  Any errors, skip adding and continue adding artciles
+        current_datetime = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        error_message = f"An error occurred at {current_datetime}: {str(e)}"
+        logging.error(error_message)
 
-    index = tickers.index(ticker)
-    start_date = ticker_data.index.min() - timedelta(days=1)
-    end_date = ticker_data.index.max()
-    prices = yf.download(yf_ticker[index], start=start_date, end=end_date)
-    adj_close = prices['Adj Close']
-    log_returns = np.log(adj_close / adj_close.shift(1))
-    print(log_returns)
-    ticker_data['log_returns'] = log_returns
+        # If available, log additional information such as article URL, name, and page number
+        if url:
+            logging.error(f"Article URL: {url}")
+        if title:
+            logging.error(f"Article Name: {title}")
+        if page_number:
+            logging.error(f"Page Number: {page_number}")
 
-    ticker_data['direction match'] = np.where((ticker_data['average-compound'] > 0) & (ticker_data['log_returns'] > 0) | (ticker_data['average-compound'] < 0) & (ticker_data['log_returns'] < 0),  1, 0)
-    counts = ticker_data['direction match'].value_counts()
-    same_count = counts.get(1,0)
-    different_count = counts.get(0, 0)
-    total_count = same_count + different_count
-    print(f'Direction Match Count: {same_count}')
-    print(f'Direction Mismatch Count: {different_count}')
-    print(f'Total data Count: {total_count}')
-    print(f'Total Accuracy: {float(same_count/total_count)}%')
-    print(ticker_data)
-    plt.title(f'Bar Plot for Ticker: {ticker}')
-    plt.xlabel('Date')
-    plt.ylabel('Mean Value')
-    # ticker_data = ticker_data.xs('title-compound', axis="columns").transpose()
-plt.show()
+        # Continue with the loop execution
+        continue
 
-"""
-# News API scraper:
-for ticker in tickers:
-    url = ('https://newsapi.org/v2/everything?'
-           'q={ticker}&'
-           'from={yesterday}&'
-           'sortBy=popularity&'
-           'apiKey=506917b7fb0f4a99b0798d79e17ddd6b')
-
-    response = requests.get(url=url)
-    data = response.json()
-    articles = data['articles']
-    for article in articles:
-        title = article['title']
-        content = article['content']
-        published_at = article['publishedAt']
-        if published_at != None:
-            time_split = published_at.split("T")
-            date = time_split[0]
-        else:
-            continue
-        parsed_data.append([ticker, date, title, content])
-"""
-"""
-# Cryptoslate webscraper
-for ticker in tickers:
-    url = crypto_slate_url + ticker
-
-    req = Request(url=url, headers={'user-agent': 'my-app'})
-    response = urlopen(req)
-
-    html = BeautifulSoup(response, 'html.parser')
-    articles = html.find_all("div", class_="list-post")
-    print(articles)
-    for article in articles:
-        title = article.find("h2").text
-        print(title)
-        excerpt_div = article.find("div", class_='excerpt')
-        if excerpt_div:
-            content = excerpt_div.text
-            print("Content:", content)
-        else:
-            content = title
-            print("Content: No excerpt available, Using Title")
-        days_ago = article.find("span", class_="post-meta").text
-        time_split = days_ago.split(" ")
-        print(time_split)
-        ago = int(time_split[1])
-        if time_split[2] == "hour" or time_split[2] == "hours":
-            date = current_datetime.date()
-            print(date)
-        elif time_split[2] == "day" or time_split[2] == "days":
-            time_ago = timedelta(days=ago)
-            time_date = current_datetime - time_ago
-            date = time_date.date()
-            print(date)
-        elif time_split[2] == "week" or time_split[2] == "weeks":
-            days_ago = ago * 7
-            time_ago = timedelta(days=days_ago)
-            time_date = current_datetime - time_ago
-            date = time_date.date()
-            print(date)
-        elif time_split[2] == "month" or time_split[2] == "months":
-            days_ago = ago * 31
-            time_ago = timedelta(days=days_ago)
-            time_date = current_datetime - time_ago
-            date = time_date.date()
-            print(date)
-        parsed_data.append([ticker, date, title, content])
-"""
-"""
-# Bitcoin Magazine scraper
-if "bitcoin" in tickers:
-    url = "https://bitcoinmagazine.com/articles/"
-
-    req = Request(url=url, headers={'user-agent': 'my-app'})
-    response = urlopen(req)
-
-    html = BeautifulSoup(response, 'html.parser')
-    articles = html.find_all("phoenix-card", class_='m-card mm-card--landscape-image mm-card--type-list')
-    for article in articles:
-        title = article.find("h2", class_="m-ellipsis--text m-card--header-text").text
-        print(title)
-        content = article.find("p", class_="m-card--body m-ellipsis--text").text
-        print(content)
-        date = article.find("time").text
-        print(date)
-        parsed_data.append(['bitcoin', date, title, content])
-
-"""
+if __name__ == "__main__":
+    scrape_articles()
