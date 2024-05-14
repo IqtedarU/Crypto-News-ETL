@@ -27,7 +27,6 @@ I will make queries for looking for specific tags, dates, or authors. Maybe look
 
 Maybe Use Pyspark, just to test optimization of speed, since this is still relatively small dataset.
 
-
 ## To build:
 
 You can use Dockerfile to make sure the scripts are copied into the Docker Container. The DAG contains the automation, while crypto_scraper has the database population and querying. It is missing AWS key, which you have yo put your own. You also have to make the inital database in AWS first. once its setup, populating can be automated through the DAG
@@ -40,3 +39,9 @@ docker run -d -p 8080:8080 my_airflow_image
 
 Check if Dag is running
 http://localhost:8080
+
+## References:
+https://airflow.apache.org/docs/apache-airflow/2.3.1/start/docker.html
+https://www.crummy.com/software/BeautifulSoup/bs4/doc/
+https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Introduction.html
+Chatgpt also used to check understanding and logic of code. Also used at the start to understand documentation a bit better.
