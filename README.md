@@ -13,15 +13,17 @@ Web-Scrape Data on the internet for cypto-news from sources. I currently web scr
 Clean the data in the format I want it to be. In this case we have Source, Url, Date, Time, Tag, Title, Content
 
 ## Step 3: Database design and integration
-Since this is a fixed schema a SQL database is best. I am currently using NoSql mainly because AWS has limits on free, and I would like to get testing out of the way.
+Since this is a fixed schema a SQL database is best. I am currently using NoSql mainly because AWS has limits on the free version, and I would like to get to testing. This will basically function as a dimensional database, but in noSQL. this is just for testing, as you would implement a actual dimensional database in a practical setting
 
 There will we two datatables. One will be sources keeping track of sources used. the other will be Articles keeping track of all articles. We can use SQL to query efficiently
 
 ## Step 4: AWS automation and Pyspark
-AWS is mainly to get experience on AWS and know more on how to use it. I will use it to automate the script, and populate the SQL Database.
+AWS is mainly to get experience on AWS and know more on how to use it. I will use Apache and Dockers to automate the script, and populate the SQL Database.
 AWS RDS is used for database, Apache Airflow is used to automate script and adding to script. maybe look into Pyspark incase big data used in future.
 This project won't use big data, as I will become poor :( .
 
 ## Step 5 Querying or future steps:
 I will make queries for looking for specific tags, dates, or authors. Maybe look into information retrieval to search for specific articles in a big database
+
+Maybe Use Pyspark, just to test optimization of speed, since this is still relatively small dataset.
 
