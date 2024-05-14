@@ -1,0 +1,5 @@
+FROM puckel/docker-airflow
+
+# Copy your Python script and DAG definition file into the container
+COPY your_script.py /usr/local/airflow/your_script.py
+COPY crypto_scraper_dag.py /usr/local/airflow/dags/crypto_scraper_dag.py
