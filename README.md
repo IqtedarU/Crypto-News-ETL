@@ -2,7 +2,7 @@
 
 This is a introductionary Project going through Data Mining and Sentiment Analysis. I mine data and get the title, date, content for a specific coin.
 This used to be a project mainly looking into crypto news sentiment through pre-trained libraries. I am switching this into a Data Engineering project.
-This is still in-progress as I just made the switch, but the plan it to go through the whole process to get the idea.
+
 
 # Steps:
 
