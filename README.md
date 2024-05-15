@@ -40,6 +40,8 @@ docker run -d -p 8080:8080 my_airflow_image
 Check if Dag is running
 http://localhost:8080
 
+Check if AWS if recieving the entries. Then you these entries for another purpose, or improve speed and processing.
+
 ## References:
 https://airflow.apache.org/docs/apache-airflow/2.3.1/start/docker.html
 https://www.crummy.com/software/BeautifulSoup/bs4/doc/
